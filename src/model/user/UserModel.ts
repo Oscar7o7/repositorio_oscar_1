@@ -94,6 +94,7 @@ class UserModel extends AbstractModel {
 
     // findMany one register
     public async findManyUser({filter,skip,take}: {filter:Prisma.UserWhereInput,skip:number,take:number}) {
+        console.log(true, filter);
         const prisma = new PrismaClient();
         return prisma.user.findMany({
             where: {
@@ -110,6 +111,30 @@ class UserModel extends AbstractModel {
                 },
                 schedule: {
                     where: { primary: true }
+                },
+                addressReference: true,
+                _count: true
+            },
+            skip,
+            take
+        });
+    }
+
+    // findMany one register
+    public async findForReport({filter,skip,take}: {filter:Prisma.UserWhereInput,skip:number,take:number}) {
+        const prisma = new PrismaClient();
+        return prisma.user.findMany({
+            where: {
+                ...filter,
+                isDelete: false
+            },
+            orderBy: {createAt:"asc"},
+            include: {
+                detail: true,
+                speciality: {
+                    include: {
+                        specialityReference: true
+                    }
                 },
                 addressReference: true,
                 _count: true

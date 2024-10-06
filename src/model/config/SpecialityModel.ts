@@ -38,7 +38,7 @@ export default class SpecialitySubModel extends AbstractModel {
                     include: {
                         userReference: true
                     }
-                }
+                },
             },
             skip,
             take

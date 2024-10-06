@@ -61,6 +61,26 @@
                 <span>Notificaciones</span>
             </a>
         </li>
+
+        <div class="sidebar-heading">
+            Reportes
+        </div>
+
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseConfigAdminReport"
+                aria-expanded="true" aria-controls="collapseConfigAdminReport">
+                <i class="fas fa-fw fa-cog"></i>
+                <span>Reportes</span>
+            </a>
+            <div id="collapseConfigAdminReport" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <h6 class="collapse-header">configuraciones:</h6>
+                    <a class="collapse-item" href="/report/doctor">Doctor</a>
+                    <a class="collapse-item" href="/report/patient">Paciente</a>
+                    <a class="collapse-item" href="/report/quote">Citas</a>
+                </div>
+            </div>
+        </li>
     {{/isAdmin}}
 
     {{#isDoctor user}}  

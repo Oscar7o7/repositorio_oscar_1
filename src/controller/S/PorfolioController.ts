@@ -48,17 +48,34 @@ export default class PorfolioController extends AbstractController {
         const file = req.file;
         const { detailId } = req.body;
 
-        await instance.updateUserDetail({
-            filter: { id:detailId },
-            data: {
-                photoReference: { create:{
-                    ext: file ? file.mimetype : ``,
-                    original: file ? file.originalname : ``,
-                    path: file ? file.path : ``,
-                    use: `Foto profesional`,
-                } }
-            }
-        });
+        const detailFound = await instance.findUserDetail({ filter:{ userId: user.id } });
+
+        if (detailFound) {
+            await instance.updateUserDetail({
+                filter: { id:detailId },
+                data: {
+                    photoReference: { create:{
+                        ext: file ? file.mimetype : ``,
+                        original: file ? file.originalname : ``,
+                        path: file ? file.path : ``,
+                        use: `Foto profesional`,
+                    } }
+                }
+            });
+        }
+        else {
+            await instance.createUserDetail({
+                data: {
+                    photoReference: { create:{
+                        ext: file ? file.mimetype : ``,
+                        original: file ? file.originalname : ``,
+                        path: file ? file.path : ``,
+                        use: `Foto profesional`,
+                    } },
+                    userReference: { connect:{id:user.id} }
+                }
+            });
+        }
 
         return res.redirect(`/porfolio`);
     }
@@ -97,12 +114,28 @@ export default class PorfolioController extends AbstractController {
         const {description} = req.body;
         const user = req.user as any;
 
-        await instance.createUserDetail({
-            data: {
-                userReference: { connect:{ id:user.id } },
-                description: description ? description : undefined 
-            }
-        })
+        const detailFound = await instance.findUserDetail({ filter:{ userId: user.id } });
+        console.log(0, true, detailFound);
+
+
+        if (detailFound) {
+            console.log(1, false);
+            await instance.updateUserDetail({
+                data: {
+                    userReference: { connect:{ id:user.id } },
+                    description: description ? description : undefined 
+                },
+                filter: { id:detailFound.id }
+            })
+        } else {
+            console.log(1, true);
+            await instance.createUserDetail({
+                data: {
+                    description: description ? description : undefined,
+                    userReference: { connect:{id:user.id} }
+                }
+            });
+        }
 
         req.flash(`succ`, `Descripción agregada`);
         return res.redirect(`/porfolio`);

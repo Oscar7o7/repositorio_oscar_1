@@ -40,7 +40,8 @@ export default class QuotesSubModel extends AbstractModel {
             take,
             include: {
                 doctorReference: true,
-                patientReference: true
+                patientReference: true,
+                quoteDetailReference: true
             }
         });
     }

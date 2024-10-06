@@ -29,6 +29,7 @@ import NotificationController from "./controller/S/Notification/NotificationCont
 import PatientControlelr from "./controller/S/Patient/PatientController";
 import PatientQuoteController from "./controller/S/Patient/PatientQuoteController";
 import PorfolioController from "./controller/S/PorfolioController";
+import ReportController from "./controller/S/Report/ReportController";
 import ApiGraphicController from "./controller/A/ApiGraphicController";
 
 
@@ -116,6 +117,7 @@ class App extends Kernel {
         const patientInstance = new PatientControlelr();
         const patientQuoteInstance = new PatientQuoteController();
         const porfolioInstance = new PorfolioController();
+        const reportInstance = new ReportController();
         const api = new ApiGraphicController();
 
         app.use(publicInstance.loadRoutes());           // rutas públicas
@@ -135,6 +137,7 @@ class App extends Kernel {
         app.use(notificationInstance.loadRoutes());     // rutas notificación
         app.use(patientInstance.loadRoutes());          // rutas paciente
         app.use(patientQuoteInstance.loadRoutes());             // rutas paciente   -   Cita
+        app.use(reportInstance.LoadRouters());             // rutas paciente   -   Cita
         app.use(porfolioInstance.loadRoutes());         // rutas portafolio
 
         app.use(api.loadRoutes());
