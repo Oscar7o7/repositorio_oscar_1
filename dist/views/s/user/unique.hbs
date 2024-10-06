@@ -9,6 +9,24 @@
                 </a>
             </li>
             {{#isAdmin user}}
+                {{#isDoctor data}}
+                    <li style="list-style: none;"></li>
+                        <a href="/report/doctor/?doctor={{data.id}}" class="btn btn-success d-flex gap-2">
+                            reporte
+                            <i class="bi bi-file-pdf-fill"></i>
+                        </a>
+                    </li>
+                {{/isDoctor}}
+                {{#isPatient data}}
+                    <li style="list-style: none;"></li>
+                        <a href="/report/patient/?patient={{data.id}}" class="btn btn-success d-flex gap-2">
+                            reporte
+                            <i class="bi bi-file-pdf-fill"></i>
+                        </a>
+                    </li>
+                {{/isPatient}}
+            {{/isAdmin}}
+            {{#isAdmin user}}
             <li style="list-style: none;">
                 <button class="btn btn-primary d-flex gap-2" data-toggle="modal" data-target="#modalAdminUser">
                     actualizar
