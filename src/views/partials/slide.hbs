@@ -1,0 +1,20 @@
+<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-3 "
+    id="sidenav-main">
+    
+    <div class="collapse navbar-collapse w-auto h-" style="height: 100%;" id="sidenav-collapse-main">
+        <div class="sidenav-header">
+            <a class="navbar-brand m-0" href="/"
+                target="_blank">
+                <img src="/img/logo-ct-dark.png" class="navbar-brand-img h-100" alt="main_logo">
+                <span class="ms-1 font-weight-bold">{{app.name}}</span>
+            </a>
+        </div>
+        <ul class="navbar-nav" style="">
+            {{#each pages}}
+                {{#itemNav this ../user.role}}
+                    {{this}}
+                {{/itemNav}}
+            {{/each}}
+        </ul>
+    </div>
+</aside>

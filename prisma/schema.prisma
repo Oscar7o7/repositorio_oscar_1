@@ -1,0 +1,181 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String    @id @default(uuid())
+  name       String
+  lastname   String
+  email      String
+  password   String
+  cmeg_n     String?
+  matricula  String?
+  ci         String
+  createDate DateTime?
+
+  role        String      @default("ADMIN") // "ROOT" "ADMIN" "DOCTOR"
+
+  userInInsumo      UserInInsumo[]
+
+  category          Category[]
+  insumo            Insumo[]
+  history           History[]
+
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  isDelete Boolean  @default(false)
+}
+
+model UserInInsumo {
+  id                        String          @id             @default(uuid())
+
+  userId                    String
+  userReference             User            @relation(fields: [userId], references: [id])
+
+  insumoId                  String
+  insumoReference           Insumo          @relation(fields: [insumoId], references: [id])
+
+  useIn                     String
+}
+
+model Category {
+  id                    String      @id           @default(uuid())
+  name                  String
+
+  insumo                Insumo[]
+
+  createId              String
+  createReference       User        @relation(fields: [createId], references: [id])
+
+  createAt              DateTime    @default(now())
+  updateAt              DateTime    @updatedAt
+  isDelete              Boolean     @default(false)
+}
+
+model Insumo {
+  id                        String    @id @default(uuid())
+
+  name                      String
+  description               String?
+
+  useIn                     String?
+
+  quantity                  Int       @default(0)
+  priceUnitary              Int       @default(0)
+
+  isMin                     Boolean   @default(false)
+  isMax                     Boolean   @default(false)
+
+  minStock                  Int       @default(0)
+  maxStock                  Int       @default(1000)
+
+  categoryId                String
+  categoryReference         Category      @relation(fields: [categoryId], references: [id])
+
+  createId              String
+  createReference       User        @relation(fields: [createId], references: [id])
+
+  userInInsumo      UserInInsumo[]
+
+  createAt                  DateTime @default(now())
+  updateAt                  DateTime @updatedAt
+  isDelete                  Boolean  @default(false)
+}
+
+model StaticticsMonth {
+  id String         @id         @default(uuid())
+
+  monthNumber       Int
+  monthName         String
+  monthLabel        String
+
+  objectName        String?
+  objectId          String?
+  objectReference   Boolean     @default(false)
+
+  year Int          @default(2024)
+
+  totalMonth Int
+
+  totalDay1  Int
+  totalDay2  Int
+  totalDay3  Int
+  totalDay4  Int
+  totalDay5  Int
+  totalDay6  Int
+  totalDay7  Int
+  totalDay8  Int
+  totalDay9  Int
+  totalDay10 Int
+  totalDay11 Int
+  totalDay12 Int
+  totalDay13 Int
+  totalDay14 Int
+  totalDay15 Int
+  totalDay16 Int
+  totalDay17 Int
+  totalDay18 Int
+  totalDay19 Int
+  totalDay20 Int
+  totalDay21 Int
+  totalDay22 Int
+  totalDay23 Int
+  totalDay24 Int
+  totalDay25 Int
+  totalDay26 Int
+  totalDay27 Int
+  totalDay28 Int
+  totalDay29 Int
+  totalDay30 Int
+  totalDay31 Int
+}
+
+model StaticticsYear {
+  id   String @id @default(uuid())
+  year Int
+
+  objectName String?
+  objectId   String?
+  objectReference   Boolean     @default(false)
+
+  totalYear Int
+
+  totalMonth1  Int
+  totalMonth2  Int
+  totalMonth3  Int
+  totalMonth4  Int
+  totalMonth5  Int
+  totalMonth6  Int
+  totalMonth7  Int
+  totalMonth8  Int
+  totalMonth9  Int
+  totalMonth10 Int
+  totalMonth11 Int
+  totalMonth12 Int
+}
+
+model History {
+  id                  String        @id         @default(uuid())
+
+  objectName          String?
+  objectId            String?
+  objectReference     Boolean?           @default(false)
+
+  userId              String        
+  userReference       User              @relation(fields: [userId], references: [id])
+
+  description String
+
+  createAt                  DateTime @default(now())
+}
