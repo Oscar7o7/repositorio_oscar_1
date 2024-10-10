@@ -1,0 +1,42 @@
+<div class="container">
+    <div class="row">
+        {{#each cards}}
+            <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+                <div class="card">
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="numbers">
+                                    <p class="text-sm mb-0 text-capitalize font-weight-bold">{{this.label}}</p>
+                                    <h5 class="font-weight-bolder mb-0">{{this.count}}</h5>
+                                </div>
+                            </div>
+                            <div class="col-4 text-end">
+                                <a href="{{this.path}}" class="icon icon-shape bg-gradient-primary d-flex align-items-center  justify-content-center shadow border-radius-md">
+                                    <img src="/img/logos/{{this.ico}}" style="width: 24px;" />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {{/each}}
+        
+
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12 col-lg-6 col-xl-4 h-full">
+            {{>statictics/category}}
+        </div>
+        <div class="col-12 col-lg-6 col-xl-8 h-full">
+            <input type="hidden" id="dataId" value="all_insumo" />
+            <input type="hidden" id="ObjectName" value="insumo" />
+            <input type="hidden" id="ObjectLabel" value="Insumo" />
+
+
+            {{>statictics/year}}
+        </div>
+    </div>
+
+</div>
