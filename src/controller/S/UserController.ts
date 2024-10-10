@@ -1,27 +1,52 @@
 import AbstractController from "../AbstractController";
 import UserModel from "../../model/user/UserModel";
 import { Request, Response } from "express";
-import { OnAdmin, OnAdminORDoctor, OnSession } from "../../middlewares/auth";
+import { OnAdmin, OnRoot, OnSession } from "../../middlewares/auth";
 import { Prisma } from "@prisma/client";
-import { CreateUserFrom, UpdateUserFrom } from "../../form/CreateUserForm";
-import AdressSubModel from "../../model/config/AddressSubModel";
-import SpecialityModel from "../../model/config/SpecialityModel";
-import { CreateUser, UpdateUser } from "../../validation/UserCreate";
-import NotificationModel from "../../model/user/notification/NotificationModel";
 
 
 export default class UserController extends AbstractController {
 
-    constructor() {
-        super();
+    constructor() { super()}
+
+    public async RenderCreate(req:Request,res:Response) {
+        return res.render(`s/user/create.hbs`, {
+            currentPage: {
+                title: `Crear Usuario`,
+                notResult: ``,
+                labels: [`Nombre`,`Cédula`,`Correo`,`Rol`,``],
+                actions: [
+                    { label: `Panel`, path:`/` },
+                    { label: `Lista`, path:`/user/` },
+                ],
+            }
+        });
+    }
+
+    public async RenderUpdate(req:Request,res:Response) {
+        const instance = new UserModel();
+        const id = req.params.id;
+        const result = instance.findUser({ filter:{id} });
+
+        return res.render(`s/user/update.hbs`, { 
+            data: await result, 
+            id, 
+            currentPage: {
+                title: `Actualizar Usuarios`,
+                notResult: `se encontró el usuario ${id}`,
+                actions: [
+                    { label: `Lista`, path:`/user` },
+                    { label: `Crear`, path:`/user/create` },
+                ],
+                newLink: `/user/create`,
+                labels: [`Nombre`,`Cédula`,`Correo`,`Rol`,``],
+            },
+        });
     }
 
     public async RenderList(req:Request,res:Response) {
         const instance = new UserModel();
-        const address = new AdressSubModel();
-        const speciality = new SpecialityModel();
         const user = req.user as any;
-        const noti = new NotificationModel();
 
         const {param,role} = req.query;
         let queryString = ``;
@@ -59,13 +84,17 @@ export default class UserController extends AbstractController {
         });
         const countPromise = instance.countUser({ filter:{AND:[{isDelete:false},{OR:filter}]} });
 
-        const addressListPromise = address.findManyAdress({ filter:{isDelete:false},skip:0,take:200 });
-        const specialityListPromise = speciality.findManySpeciality({ filter:{isDelete:false},skip:0,take:200 });
-
         const returnData = {
-            titlePag: `Usuarios`,
-            notFoundMessage: `No hay usuarios`,
-            labels: [`Nombre`,`Cédula`,`Correo`,`Rol`,``],
+            currentPage: {
+                title: `Usuarios`,
+                notResult: `No hay usuarios`,
+                newLink: `/user/create`,
+                labels: [`Nombre`,`Cédula`,`Correo`,`Rol`,``],
+                actions: [
+                    { label: `Panel`, path:`/`,permisson:[`ROOT`,`ADMIN`,`DOCTOR`] },
+                    { label: `Crear`, path:`/user/create`,permisson:[`ROOT`] },
+                ],
+            },
             list: [] as any,
             countRender: ``,
             foundNext: false,
@@ -75,9 +104,12 @@ export default class UserController extends AbstractController {
             roleList: super.getRoles(),
             address: [] as any,
             speciality: [] as any,
-            notifications: await noti.GetNowNotification({ id:user.id }),
 
-            form: CreateUserFrom,
+            search: {
+                status: true,
+                path: `/user/`,
+                value: param
+            },
 
             filter: {
                 skip,
@@ -87,8 +119,6 @@ export default class UserController extends AbstractController {
             }
         }
 
-        const specialityList = await specialityListPromise;
-        const addressList = await addressListPromise;
         const list = await listPromise;
         const count = await countPromise;        
 
@@ -105,8 +135,6 @@ export default class UserController extends AbstractController {
             returnData.urlPrevious += `&${queryString}`;
         }
 
-        returnData.address = addressList;
-        returnData.speciality = specialityList;
         returnData.list = list;
         returnData.countRender = `${count - skip < 11 ? count : skip+take}/${count}`;
 
@@ -116,38 +144,42 @@ export default class UserController extends AbstractController {
     public async RenderUnique(req:Request,res:Response) {
         const id = req.params.id;
         const instance = new UserModel();
-        const speciality = new SpecialityModel();
-        const noti = new NotificationModel();
         const user = req.user as any;
 
         const data = instance.findUser({ filter:{id} });
-        const specialityListPromise = speciality.findManySpeciality({ filter:{isDelete:false},skip:0,take:200 });
 
         const dataReturn = {
             data: [] as any,
             form: {} as any,
+            yearList: await instance.GetAllYears(),
             year: await instance.getYears(),
-            speciality: [] as any,
-            notifications: await noti.GetNowNotification({ id:user.id })
+            currentPage: {
+                title: `Ver usuario`,
+                notResult: `se encontró el usuario ${id}`,
+                actions: [
+                    { label: `Lista`, path:`/user`, permisson:[`ADMIN`,`DOCTOR`] },
+                    { label: `Crear`, path:`/user/create`, permisson:[`ROOT`] },
+                ],
+                newLink: `/user/create`,
+                labels: [],
+            },
+            
         }
 
         dataReturn.data = await data;
-        dataReturn.form = UpdateUserFrom(dataReturn.data.id);
-        dataReturn.speciality = await specialityListPromise;
         return res.render(`s/user/unique.hbs`, dataReturn);
     }
 
     public async CreateLogic(req:Request,res:Response) {
         try {
             const instance = new UserModel();
-            const addressInstance = new AdressSubModel();
-            const speciality = new SpecialityModel();
 
-            const { name, ci, email, lastname, role, addressId,cmeg_n,matricula, phoneCode, phoneNumber, esp1, esp2 } = req.body;
+            const { name, ci, email, lastname, role } = req.body;
             const user = req.user as any;
-            let parentId;
 
-            if(user) parentId = user.id;
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
 
             if(!name) {
                 req.flash(`error`,`Debe completar los datos correctamente`);
@@ -156,55 +188,23 @@ export default class UserController extends AbstractController {
 
             let data: Prisma.UserCreateInput = { 
                 ci,
-                cmeg_n: cmeg_n ? cmeg_n : ``,
-                matricula: matricula ? matricula : ``,
                 email,
                 password:ci,
                 name,
                 lastname,
                 role,
-                phoneCode: phoneCode ? phoneCode : ``, 
-                phoneNumber: phoneNumber ? phoneNumber : ``,
             }
 
-            if(!addressId.includes(`opción`)) {
-                data = {
-                    ...data,
-                    addressReference: {
-                        connect: {id:addressId}
-                    }
-                }
-            }
+            await instance.createUser({ data });
 
-            if (parentId) {
-                data = {
-                    ...data,
-                    parentReference: {connect: { id:parentId }}
-                }
-            }
+            await instance.CreateHistory({ 
+                description:`creación de usuario`,
+                userReference: { connect:{id:user.id} },
+                objectId:user.id,
+                objectName:`usuario`,
+                objectReference: true
+            });
 
-            try {
-                const create = await instance.createUser({data}); 
-
-                if (esp1) {
-                    const esp1Test = await speciality.findSpeciality({ filter:{id:esp1} });
-                    if(esp1Test) {
-                        await instance.connectSpeciality({ speciality:esp1,user:create.id });
-                    }
-                }
-    
-                if (esp2) {
-                    const esp2Test = await speciality.findSpeciality({ filter:{id:esp2} });
-                    if(esp2Test) {
-                        await instance.connectSpeciality({ speciality:esp2,user:create.id });
-                    }
-                }
-
-            } catch (error) {
-                req.flash(`Error`, `Error temporal`);
-                return res.redirect(`/user/`); 
-            }   
-            
             req.flash(`succ`, `Usuario creado`);
             return res.redirect(`/user/`);
         } catch (error) {
@@ -216,8 +216,9 @@ export default class UserController extends AbstractController {
     public async EditLogic(req:Request,res:Response) {
         try {
             const instance = new UserModel();
+            const user = req.user as any;
 
-            const { ci,name,lastname,phoneCode,phoneNumber,cmeg_n,matricula,email } = req.body;
+            const { ci,name,lastname,email } = req.body;
             const id = req.params.id as string;
 
             let dataUpdate: Prisma.UserUpdateInput = {};
@@ -226,19 +227,27 @@ export default class UserController extends AbstractController {
             if(email) dataUpdate = {...dataUpdate, email};
             if(name) dataUpdate = {...dataUpdate, name};
             if(lastname) dataUpdate = {...dataUpdate, lastname};
-            if(phoneCode) dataUpdate = {...dataUpdate, phoneCode};
-            if(phoneNumber) dataUpdate = {...dataUpdate, phoneNumber};
             if(email) dataUpdate = {...dataUpdate, email};
-            if(cmeg_n) dataUpdate = {...dataUpdate, cmeg_n};
-            if(matricula) dataUpdate = {...dataUpdate, matricula};
 
             await instance.updateUser({
                 data: dataUpdate,
                 id
-            });       
+            });   
+            
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
 
-            // req.flash(`succ`, `Usuario actualizado`);
-            return res.redirect(`/profile`);
+            await instance.CreateHistory({ 
+                description:`actualización de usuario`,
+                userReference: { connect:{id} },
+                objectId:id,
+                objectName:`usuario`,
+                objectReference: true
+            });
+
+            req.flash(`succ`, `Usuario actualizado`);
+            return res.redirect(req.query.next ? req.query.next : `/profile`);
         } catch (error) {
             req.flash(`Error`, `Error temporal`);
             return res.redirect(`/user/`);            
@@ -249,8 +258,21 @@ export default class UserController extends AbstractController {
         try {
             const instance = new UserModel();
             const id = req.params.id as string;
+            const user = req.user as any;
 
             await instance.deleteUser({ id });        
+
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
+
+            await instance.CreateHistory({ 
+                description:`actualización de usuario`,
+                userReference: { connect:{id} },
+                objectId:id,
+                objectName:`usuario`,
+                objectReference: true
+            });
 
             req.flash(`succ`, `Eliminado exitosamente.`);
             return res.redirect(`/user/`);
@@ -266,6 +288,11 @@ export default class UserController extends AbstractController {
 
             const { password, passwordNew, passwordRepeat,currentPassword } = req.body;
             const id = req.params.id as string;
+            const user = req.user as any;
+
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
 
             if(passwordNew !== passwordRepeat) {
                 req.flash(`err`, `Las contraseñas no coinciden`);
@@ -285,6 +312,14 @@ export default class UserController extends AbstractController {
                 id
             }); 
 
+            await instance.CreateHistory({ 
+                description:`creación de usuario contraseña`,
+                userReference: { connect:{id} },
+                objectId:id,
+                objectName:`usuario`,
+                objectReference: true
+            });
+
             req.flash(`succ`, `Usuario actualizado`);
             return res.render(`/profiel`);
         } catch (error) {
@@ -294,13 +329,15 @@ export default class UserController extends AbstractController {
     }
 
     public loadRoutes () {
-        this.router.get(`/user/`, OnSession, OnAdminORDoctor, this.RenderList);
-        this.router.get(`/user/:id`, OnSession, OnAdminORDoctor, this.RenderUnique);
+        this.router.get(`/user/create`, OnSession, OnRoot,this.RenderCreate);
+        this.router.get(`/user/`, OnSession, OnRoot, this.RenderList);
+        this.router.get(`/user/:id`, OnSession, OnRoot, this.RenderUnique);
+        this.router.get(`/user/:id/update`, OnSession, OnRoot, this.RenderUpdate);
 
-        this.router.post(`/user/create`, OnSession, OnAdminORDoctor, CreateUser, this.CreateLogic);
-        this.router.post(`/user/:id/update`, OnSession, UpdateUser, this.EditLogic);
-        this.router.post(`/user/:id/password`, OnSession, this.UpdatePasswordLogic);
-        this.router.post(`/user/:id/delete`, OnSession, OnAdmin, this.DeleteLogic);
+        this.router.post(`/user/create`, OnSession, OnRoot, this.CreateLogic)
+        this.router.post(`/user/:id/update`, OnSession, OnRoot, this.EditLogic)
+        this.router.post(`/user/:id/password`, OnSession, OnRoot, this.UpdatePasswordLogic);
+        this.router.post(`/user/:id/delete`, OnSession, OnRoot, OnAdmin, this.DeleteLogic);
 
         return this.router;
     }

@@ -7,4 +7,4 @@ export interface RESPONSE_SERVICE {
     successMessage?:    string,
 }
 
-export type GraphicPayload = `spaceCiteQuoteStatus` | `spaceCiteQuoteYear` | `spaceCiteQuoteMonth` | ``; 
+export type GraphicPayload = `spaceGraphicUserYear` | `spaceGraphicUserMonth` | ``; 

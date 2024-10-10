@@ -36,8 +36,17 @@ export const OnAdmin = function(req: any, res: any, next: NextFunction) {
     }
 }
 
-export const OnAdminORDoctor = function(req: any, res: any, next: NextFunction) {
-    if (req.user.role === `ADMIN` || req.user.role === `DOCTOR`) {
+export const OnRoot = function(req: any, res: any, next: NextFunction) {
+    if (req.user.role === `ROOT`) {
+        next();
+    } else {
+        req.flash("err", "No eres un super usuario.");
+        res.redirect("/dashboard");
+    }
+}
+
+export const OnAdminORRoot = function(req: any, res: any, next: NextFunction) {
+    if (req.user.role === `ADMIN` || req.user.role === `ROOT`) {
         next();
     } else {
         req.flash("err", "No eres un doctor.");

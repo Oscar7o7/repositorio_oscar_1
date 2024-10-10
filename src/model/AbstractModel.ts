@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import Kernel from "../Kernel";
 import { MONTH_STRUCT } from "../types/app";
@@ -23,8 +23,38 @@ class AbstractModel extends Kernel {
         return result;
     }
 
+    // history 
+    public async CreateHistory(data: Prisma.HistoryCreateInput) {
+        const prisma = this.prisma;
+        await prisma.history.create({data});
+    }
+
+    public async findManyHistory({filter,skip,take}: {filter:Prisma.HistoryWhereInput,skip:number,take:number}) {
+        const prisma = new PrismaClient();
+        return prisma.history.findMany({
+            where: {
+                ...filter,
+            },
+            include: {
+                userReference: true,
+            },
+            orderBy: {createAt:"asc"},
+            skip,
+            take
+        });
+    }
+
+    public async countHistory({filter}: {filter:Prisma.HistoryWhereInput}) {
+        const prisma = new PrismaClient();
+        return prisma.history.count({
+            where: {
+                ...filter,
+            }
+        });
+    }
+
     // connect or create
-    public async PushStatictics({objectId, objectName}: {objectName:string, objectId:string}) {
+    public async PushStatictics({objectId, objectName}: {objectName:string, objectId?:string}) {
         const prisma = this.prisma;
 
         const staticticsMonthPromise = prisma.staticticsMonth.findFirst({
@@ -126,7 +156,7 @@ class AbstractModel extends Kernel {
         })
     } 
 
-    public async create({objectId, objectName,type, prisma}: {type:`MONTH` | `YEAR`,objectName:string, objectId:string, prisma:PrismaClient}) {
+    public async create({objectId, objectName,type, prisma}: {type:`MONTH` | `YEAR`,objectName:string, objectId?:string, prisma:PrismaClient}) {
         if(type === "MONTH") {
             const monthNumber = this.getMonth();
             const month: MONTH_STRUCT = this.getMonths(monthNumber-1) as MONTH_STRUCT;
@@ -139,6 +169,8 @@ class AbstractModel extends Kernel {
                     monthNumber: monthNumber,
                     objectId,
                     objectName,
+
+                    year: this.getYear(),
 
                     totalMonth: 1,
 
@@ -205,6 +237,13 @@ class AbstractModel extends Kernel {
             }
         })
     } 
+
+    public async GetAllYears () {
+        return this.prisma.staticticsYear.groupBy({
+            by:"year",
+            orderBy: { year:"desc" }
+        })
+    }
 
     public getYear() {
         const date = new Date();

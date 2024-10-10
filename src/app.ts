@@ -14,23 +14,14 @@ import "./config/passport";
 import Public from "./controller/P/PublicController";
 import Auth from "./controller/S/AuthController";
 import Dashboard from "./controller/S/DashboardController";
-import User from "./controller/S/UserController";
-import Address from "./controller/S/Address/AddressController";
-import SocialByUser from "./controller/S/Social/SocialByUserController";
-import SocialMedia from "./controller/S/Social/SocialMediaController";
-import Speciality from "./controller/S/Speciality/SpecialityController";
 import Profile from "./controller/S/ProfileController";
-import Doctor from "./controller/S/Doctor/DoctorController";
-import DoctorScedule from "./controller/S/Doctor/DoctorScheduleController";
-import DoctorQuote from "./controller/S/Doctor/DoctorQuoteController";
-import DoctorPatient from "./controller/S/Doctor/DoctorPatientController";
-import Schedule from "./controller/S/Schedule/ScheduleController";
-import NotificationController from "./controller/S/Notification/NotificationController";
-import PatientControlelr from "./controller/S/Patient/PatientController";
-import PatientQuoteController from "./controller/S/Patient/PatientQuoteController";
-import PorfolioController from "./controller/S/PorfolioController";
+import User from "./controller/S/UserController";
+import Category from "./controller/S/Insumo/CateogryController";
+import Insumo from "./controller/S/Insumo/InsumoController";
 import ReportController from "./controller/S/Report/ReportController";
 import ApiGraphicController from "./controller/A/ApiGraphicController";
+import HistoryController from "./controller/S/HistoryController";
+import ApiInsumoController from "./controller/A/ApiInsumoController";
 
 
 class App extends Kernel {
@@ -69,7 +60,7 @@ class App extends Kernel {
         app.set("view engine", "hbs");
 
         // Settings
-        app.use(morgan("dev"));
+        //  app.use(morgan("dev"));
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
         app.use(methodOverride("_method"));
@@ -89,6 +80,53 @@ class App extends Kernel {
             res.locals.succ = req.flash("succ");
               res.locals.err = req.flash("err");
               res.locals.error = req.flash("error");
+              res.locals.app = {
+                name: `Ignamar Tirado`
+              },
+              res.locals.pages = [
+                {
+                    path:`/stock`,
+                    icon:`stock.png`,
+                    label:`Inventario`,
+                    current:`stock`,
+                    permisson: [`ROOT`,`ADMIN`]
+                },
+                {
+                    path:`/history`,
+                    icon:`history.png`,
+                    label:`Historial`,
+                    current:`history`,
+                    permisson: [`ROOT`]
+                },
+                {
+                    path:`/dashboard`,
+                    icon:`bar.png`,
+                    label:`Panel`,
+                    current:`panel`,
+                    permisson: [`ROOT`,`ADMIN`,`DOCTOR`]
+                },
+                {
+                    path:`/user`,
+                    icon:`users.png`,
+                    label:`Usuarios`,
+                    current:`user`,
+                    permisson: [`ROOT`]
+                },
+                {
+                    path:`/insumo`,
+                    icon:`insumo.png`,
+                    label:`Insumos`,
+                    current:`insumo`,
+                    permisson: [`ROOT`,`ADMIN`,`DOCTOR`]
+                },
+                {
+                    path:`/insumo/category`,
+                    icon:`tag.png`,
+                    label:`Categorias`,
+                    current:`category`,
+                    permisson: [`ROOT`,`ADMIN`,`DOCTOR`]
+                }
+              ]
               next();
         });
 
@@ -103,49 +141,36 @@ class App extends Kernel {
         const authInstance = new Auth();
         const dashboardInstance = new Dashboard();
         const userInstance = new User();
-        const addressInstance = new Address();
-        const socialByUserInstance = new SocialByUser();
-        const socialMediaInstance = new SocialMedia();
-        const specialityInstance = new Speciality();
         const profileInstance = new Profile();
-        const doctorInstance = new Doctor();
-        const doctorScheduleInstance = new DoctorScedule();
-        const doctorQuoteInstance = new DoctorQuote();
-        const doctorPatientInstance = new DoctorPatient();
-        const scheduleInstance = new Schedule();
-        const notificationInstance = new NotificationController();
-        const patientInstance = new PatientControlelr();
-        const patientQuoteInstance = new PatientQuoteController();
-        const porfolioInstance = new PorfolioController();
+        const insumoInstance = new Insumo();
+        const categoryInstance = new Category();
         const reportInstance = new ReportController();
+        const historyInstance = new HistoryController();
+        const api2 = new ApiInsumoController(); 
         const api = new ApiGraphicController();
 
         app.use(publicInstance.loadRoutes());           // rutas públicas
         app.use(dashboardInstance.loadRoutes());        // rutas panel de control
-        app.use(profileInstance.loadRoutes());          // rutas de profile
         app.use(authInstance.loadRoutes());             // rutas de login
         app.use(userInstance.loadRoutes());             // rutas de usuario
-        app.use(addressInstance.loadRoutes());          // rutas de direcciones
-        app.use(socialByUserInstance.loadRoutes());     // rutas de social by user
-        app.use(socialMediaInstance.loadRoutes());      // rutas de social media
-        app.use(specialityInstance.loadRoutes());       // rutas de espacialidad
-        app.use(doctorInstance.loadRoutes());           // rutas de doctor
-        app.use(doctorScheduleInstance.loadRoutes());           // rutas de doctor  -   Horario
-        app.use(doctorQuoteInstance.loadRoutes());              // rutas de doctor  -   Citas
-        app.use(doctorPatientInstance.loadRoutes());            // rutas de doctor  -   Paciente
-        app.use(scheduleInstance.loadRoutes());         // rutas de horarios
-        app.use(notificationInstance.loadRoutes());     // rutas notificación
-        app.use(patientInstance.loadRoutes());          // rutas paciente
-        app.use(patientQuoteInstance.loadRoutes());             // rutas paciente   -   Cita
         app.use(reportInstance.LoadRouters());             // rutas paciente   -   Cita
-        app.use(porfolioInstance.loadRoutes());         // rutas portafolio
+        app.use(profileInstance.loadRoutes());
+        app.use(insumoInstance.loadRoutes());
+        app.use(historyInstance.loadRoutes());
+        app.use(categoryInstance.loadRoutes());
 
         app.use(api.loadRoutes());
+        app.use(api2.loadRoutes());
 
         app.get(`/logout`, async (req: Request, res: Response) => {
             req.logOut((err) => {
                 return res.redirect(`/`);
             });
+        })
+
+        app.use(`/`, async(req: any, res: Response) => {
+            if (req.user) return res.redirect(`/dashboard`);
+            else return res.redirect(`/login`)
         })
     }
 

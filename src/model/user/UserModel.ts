@@ -22,7 +22,7 @@ class UserModel extends AbstractModel {
         return newYears;
     }
 
-    public async countUser({filter}: {filter:Prisma.UserWhereInput | Prisma.UserWhereInput[]}) {
+    public async countUser({filter}: {filter:Prisma.UserWhereInput}) {
         const prisma = new PrismaClient();
         return prisma.user.count({
             where: {
@@ -32,7 +32,6 @@ class UserModel extends AbstractModel {
         });
     }
 
-    // find one register
     public async findUser({filter}: {filter:Prisma.UserWhereInput}) {
         const prisma = new PrismaClient();
         return prisma.user.findFirst({
@@ -41,50 +40,35 @@ class UserModel extends AbstractModel {
                 isDelete: false
             },
             include: {
-                addressReference: {
-                    include: {
-                        parentReference: {
-                            include:{
-                                parentReference:true
-                            }
-                        }
-                    }
-                },
-                children: true,
-                detail: {
-                    include: {
-                        photoReference: true
-                    }
-                },
-                socialMediaReference: {
-                    include: {
-                        socialMediaReference: true
-                    }
-                },
-                doctor: true,
-                parentReference: true,
-                patient: true,
-                schedule: {
-                    where: {
-                        primary: true
+                category: {
+                    skip: 0,
+                    take: 10,
+                    select: {
+                        _count: true,
+                        id: true,
+                        name: true,
                     },
-                    include: {
-                        detail:{
-                            orderBy: { day_index:"asc" },
-                            select: {
-                                day:true,
-                                day_index: true,
-                                id: true,
-                                isDelete: true,
-                                time_end: true,
-                                time_start: true
-                            }
-                        }
+                    where: {
+                        isDelete:false
+                    },
+                    orderBy: {
+                        name: "asc"
                     }
                 },
-                speciality: {
-                    include: {
-                        specialityReference: true
+                insumo: {
+                    skip: 0,
+                    take: 10,
+                    select: {
+                        categoryReference: { select: {name:true} },
+                        description: true,
+                        id: true,
+                        name: true,
+                    },
+                    where: {
+                        isDelete:false
+                    },
+                    orderBy: {
+                        name: "asc"
                     }
                 },
                 _count: true
@@ -92,9 +76,7 @@ class UserModel extends AbstractModel {
         });
     }
 
-    // findMany one register
     public async findManyUser({filter,skip,take}: {filter:Prisma.UserWhereInput,skip:number,take:number}) {
-        console.log(true, filter);
         const prisma = new PrismaClient();
         return prisma.user.findMany({
             where: {
@@ -102,43 +84,6 @@ class UserModel extends AbstractModel {
                 isDelete: false
             },
             orderBy: {createAt:"asc"},
-            include: {
-                detail: true,
-                speciality: {
-                    include: {
-                        specialityReference: true
-                    }
-                },
-                schedule: {
-                    where: { primary: true }
-                },
-                addressReference: true,
-                _count: true
-            },
-            skip,
-            take
-        });
-    }
-
-    // findMany one register
-    public async findForReport({filter,skip,take}: {filter:Prisma.UserWhereInput,skip:number,take:number}) {
-        const prisma = new PrismaClient();
-        return prisma.user.findMany({
-            where: {
-                ...filter,
-                isDelete: false
-            },
-            orderBy: {createAt:"asc"},
-            include: {
-                detail: true,
-                speciality: {
-                    include: {
-                        specialityReference: true
-                    }
-                },
-                addressReference: true,
-                _count: true
-            },
             skip,
             take
         });
@@ -161,25 +106,6 @@ class UserModel extends AbstractModel {
             where: { id },
             data: {
                 isDelete: true
-            }
-        })
-    }
-
-    public async connectSpeciality({user,speciality}:{user:string,speciality:string}) {
-        const prisma = new PrismaClient();
-        return prisma.doctroWithSpeciality.create({ data:{
-            specialityReference: { connect:{id:speciality} },
-            userReference: { connect: { id:user } }
-        } })
-    }
-
-    public async getDoctorForPatient({}: {}) {
-        const prisma = new PrismaClient();
-        return prisma.user.findMany({
-            where: {
-                AND: [
-                    { isDelete: true },
-                ]
             }
         })
     }
