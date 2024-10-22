@@ -156,6 +156,7 @@ class InsumoController extends AbstractController_1.default {
                     actions: [
                         { label: `Lista`, path: `/insumo` },
                         { label: `Crear`, path: `/insumo/create`, permissions: [`ROOT`, `ADMIN`] },
+                        { label: `Eliminar`, path: `/insumo/${id}/delete`, permissions: [`ROOT`, `ADMIN`] },
                     ],
                 },
             };
@@ -167,7 +168,7 @@ class InsumoController extends AbstractController_1.default {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const instance = new InsumoModel_1.default();
-                const { name, categoryId, description, maxStock, minStock, priceUnitary, quantity } = req.body;
+                const { name, categoryId, description, maxStock, minStock, quantity } = req.body;
                 const user = req.user;
                 let data = {
                     categoryReference: { connect: { id: categoryId } },
@@ -176,16 +177,18 @@ class InsumoController extends AbstractController_1.default {
                     description,
                     maxStock: maxStock ? Number(maxStock) : 100,
                     minStock: minStock ? Number(minStock) : 0,
-                    priceUnitary: priceUnitary ? Number(priceUnitary) : 0,
                     quantity: quantity ? Number(quantity) : 0,
                 };
+                let currentDescription = `Nombre:${name}, cantidad:${quantity} descripción:${description}, mínimo:${minStock}, maxsimo:${maxStock} creador: ${user.name} ${user.lastname}`;
                 yield instance.createInsumo({ data });
                 yield instance.CreateHistory({
                     description: `creación de insumo (${data.name})`,
                     userReference: { connect: { id: user.id } },
                     objectId: user.id,
                     objectName: `insumo`,
-                    objectReference: true
+                    objectReference: true,
+                    action: `create.insumo`,
+                    descriptionAlt: currentDescription
                 });
                 if (user) {
                     yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
@@ -203,27 +206,45 @@ class InsumoController extends AbstractController_1.default {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const instance = new InsumoModel_1.default();
+                const categoryModel = new CategoryModel_1.default();
                 const user = req.user;
-                const { name, categoryId, description, maxStock, minStock, priceUnitary, quantity } = req.body;
+                const { name, categoryId, description, maxStock, minStock, quantity } = req.body;
                 const id = req.params.id;
+                const insumoFound = yield instance.findInsumo({ filter: { id } });
+                const categoryFound = yield categoryModel.findCategory({ filter: { id: categoryId } });
+                if (!insumoFound || !categoryFound) {
+                    req.flash(`err`, `Error temporal`);
+                    return res.redirect(`/insumo`);
+                }
                 let dataUpdate = {};
                 if (user) {
                     yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
                 }
-                if (name)
+                let currentDescription = `actualizador: ${user.name} ${user.lastname}`;
+                if (name) {
+                    currentDescription += `, nombre: ${insumoFound.name} -> ${name}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { name });
-                if (description)
+                }
+                if (description) {
+                    currentDescription += `, descripción: ${insumoFound.description} -> ${description}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { description });
-                if (maxStock)
+                }
+                if (maxStock) {
+                    currentDescription += `, maximo: ${insumoFound.maxStock} -> ${maxStock}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { maxStock: Number(maxStock) });
-                if (minStock)
+                }
+                if (minStock) {
+                    currentDescription += `, mínimo: ${insumoFound.minStock} -> ${minStock}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { minStock: Number(minStock) });
-                if (priceUnitary)
-                    dataUpdate = Object.assign(Object.assign({}, dataUpdate), { priceUnitary: Number(priceUnitary) });
-                if (quantity)
+                }
+                if (quantity) {
+                    currentDescription += `, cantidad: ${insumoFound.quantity} -> ${quantity}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { quantity: Number(quantity) });
-                if (categoryId)
+                }
+                if (categoryId) {
+                    currentDescription += `, categoria: ${insumoFound.categoryReference.name} -> ${categoryFound.name}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { categoryReference: { connect: { id: categoryId } } });
+                }
                 yield instance.updateInsumo({
                     data: dataUpdate,
                     id
@@ -233,9 +254,11 @@ class InsumoController extends AbstractController_1.default {
                 yield instance.CreateHistory({
                     description: `actualización de insumo ${dataUpdate.name}`,
                     userReference: { connect: { id: user.id } },
-                    objectId: user.id,
+                    objectId: id,
                     objectName: `insumo`,
-                    objectReference: true
+                    objectReference: true,
+                    action: `udpate.insumo`,
+                    descriptionAlt: currentDescription
                 });
                 // req.flash(`succ`, `Usuario actualizado`);
                 return res.redirect(`/insumo`);
@@ -259,9 +282,11 @@ class InsumoController extends AbstractController_1.default {
                 yield instance.CreateHistory({
                     description: `eliminación de insumo`,
                     userReference: { connect: { id: user.id } },
-                    objectId: user.id,
+                    objectId: id,
                     objectName: `insumo`,
-                    objectReference: true
+                    objectReference: true,
+                    action: `delete.insumo`,
+                    descriptionAlt: `eliminador: ${user.name} ${user.lastname}`
                 });
                 req.flash(`succ`, `Eliminado exitosamente.`);
                 return res.redirect(`/insumo/`);
@@ -272,6 +297,37 @@ class InsumoController extends AbstractController_1.default {
             }
         });
     }
+    Recovery(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const instance = new InsumoModel_1.default();
+                const user = req.user;
+                const id = req.params.id;
+                if (user) {
+                    yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
+                }
+                let currentDescription = `recuperador: ${user.name} ${user.lastname}`;
+                yield instance.updateInsumo({ id, data: { isDelete: false } });
+                yield instance.PushStatictics({ objectId: id, objectName: `insumo` });
+                yield instance.PushStatictics({ objectId: `all_insumo`, objectName: `insumo` });
+                yield instance.CreateHistory({
+                    description: `recuperar usuario de insumo ${id}`,
+                    userReference: { connect: { id: user.id } },
+                    objectId: id,
+                    objectName: `insumo`,
+                    objectReference: true,
+                    action: `recovery.insumo`,
+                    descriptionAlt: currentDescription
+                });
+                // req.flash(`succ`, `Usuario actualizado`);
+                return res.redirect(`/insumo`);
+            }
+            catch (error) {
+                req.flash(`Error`, `Error temporal`);
+                return res.redirect(`/insumo`);
+            }
+        });
+    }
     loadRoutes() {
         this.router.get(`/insumo/create`, auth_1.OnSession, this.RenderCreate);
         this.router.get(`/insumo/`, auth_1.OnSession, this.RenderList);
@@ -279,7 +335,8 @@ class InsumoController extends AbstractController_1.default {
         this.router.get(`/insumo/:id/update`, auth_1.OnSession, this.RenderUpdate);
         this.router.post(`/insumo/create`, auth_1.OnSession, this.CreateLogic);
         this.router.post(`/insumo/:id/update`, auth_1.OnSession, this.EditLogic);
-        this.router.post(`/insumo/:id/delete`, auth_1.OnSession, auth_1.OnAdmin, this.DeleteLogic);
+        this.router.get(`/insumo/:id/recovery`, auth_1.OnSession, auth_1.OnRoot, this.Recovery);
+        this.router.get(`/insumo/:id/delete`, auth_1.OnSession, auth_1.OnAdminORRoot, this.DeleteLogic);
         return this.router;
     }
 }

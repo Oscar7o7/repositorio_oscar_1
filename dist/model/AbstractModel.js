@@ -41,6 +41,17 @@ class AbstractModel extends Kernel_1.default {
             yield prisma.history.create({ data });
         });
     }
+    findHistory(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ filter }) {
+            const prisma = new client_1.PrismaClient();
+            return prisma.history.findFirst({
+                where: Object.assign({}, filter),
+                include: {
+                    userReference: true,
+                }
+            });
+        });
+    }
     findManyHistory(_a) {
         return __awaiter(this, arguments, void 0, function* ({ filter, skip, take }) {
             const prisma = new client_1.PrismaClient();

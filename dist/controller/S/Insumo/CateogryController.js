@@ -47,9 +47,10 @@ class CategoryController extends AbstractController_1.default {
                     title: `Actualizar Categoria`,
                     notResult: `se encontró la categoria ${id}`,
                     actions: [
-                        { label: `Insumos`, path: `/insumo/`, permissions: [`ROOT`, `ADMIN`, `DOCTOR`] },
+                        { label: `Insumos`, path: `/insumo/?categoryId=${id}`, permissions: [`ROOT`, `ADMIN`, `DOCTOR`] },
                         { label: `Lista`, path: `/insumo/category`, permissions: [`ROOT`, `ADMIN`, `DOCTOR`] },
                         { label: `Crear`, path: `/insumo/category/create`, permissions: [`ROOT`, `ADMIN`] },
+                        { label: `Eliminar`, path: `/insumo/category/${id}/delete` },
                     ],
                     labels: [],
                 },
@@ -163,6 +164,7 @@ class CategoryController extends AbstractController_1.default {
                     createReference: { connect: { id: user.id } },
                     name,
                 };
+                let currentDescription = `Nombre:${name}, creador: ${user.name} ${user.lastname}`;
                 yield instance.createCategory({ data });
                 if (user) {
                     yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
@@ -171,8 +173,10 @@ class CategoryController extends AbstractController_1.default {
                     description: `creación de categoria`,
                     userReference: { connect: { id: user.id } },
                     objectId: user.id,
-                    objectName: `categoria`,
-                    objectReference: true
+                    objectName: `insumo/category`,
+                    objectReference: true,
+                    action: `create.category`,
+                    descriptionAlt: currentDescription
                 });
                 req.flash(`succ`, `Categoria creada.`);
                 return res.redirect(`/insumo/category/`);
@@ -191,8 +195,11 @@ class CategoryController extends AbstractController_1.default {
                 const user = req.user;
                 const id = req.params.id;
                 let dataUpdate = {};
-                if (name)
+                let currentDescription = `actualizador: ${user.name} ${user.lastname}`;
+                if (name) {
+                    currentDescription += `, nombre:${name}`;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { name });
+                }
                 if (user) {
                     yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
                 }
@@ -203,9 +210,11 @@ class CategoryController extends AbstractController_1.default {
                 yield instance.CreateHistory({
                     description: `actualización de categoria`,
                     userReference: { connect: { id: user.id } },
-                    objectId: user.id,
-                    objectName: `categoria`,
-                    objectReference: true
+                    objectId: id,
+                    objectName: `insumo/category`,
+                    objectReference: true,
+                    action: `update.category`,
+                    descriptionAlt: currentDescription
                 });
                 // req.flash(`succ`, `Usuario actualizado`);
                 return res.redirect(`/insumo/category`);
@@ -226,15 +235,50 @@ class CategoryController extends AbstractController_1.default {
                 if (user) {
                     yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
                 }
+                const customDescription = `eliminador: ${user.name} ${user.lastname}`;
                 yield instance.CreateHistory({
                     description: `eliminación de categoria`,
                     userReference: { connect: { id: user.id } },
-                    objectId: user.id,
-                    objectName: `categoria`,
-                    objectReference: true
+                    objectId: id,
+                    objectName: `insumo/category`,
+                    objectReference: true,
+                    action: `delete.category`,
+                    descriptionAlt: customDescription
                 });
                 req.flash(`succ`, `Eliminado exitosamente.`);
                 return res.redirect(`/insumo/category/`);
+            }
+            catch (error) {
+                req.flash(`Error`, `Error temporal`);
+                return res.redirect(`/insumo/category/`);
+            }
+        });
+    }
+    Recovery(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const instance = new CategoryModel_1.default();
+                const user = req.user;
+                const id = req.params.id;
+                let currentDescription = `recuperador: ${user.name} ${user.lastname}`;
+                if (user) {
+                    yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
+                }
+                yield instance.updateCategory({
+                    data: { isDelete: false },
+                    id
+                });
+                yield instance.CreateHistory({
+                    description: `recuperación de categoria`,
+                    userReference: { connect: { id: user.id } },
+                    objectId: id,
+                    objectName: `insumo/category`,
+                    objectReference: true,
+                    action: `recovery.category`,
+                    descriptionAlt: currentDescription
+                });
+                // req.flash(`succ`, `Usuario actualizado`);
+                return res.redirect(`/insumo/category`);
             }
             catch (error) {
                 req.flash(`Error`, `Error temporal`);
@@ -247,9 +291,10 @@ class CategoryController extends AbstractController_1.default {
         this.router.get(`/insumo/category/`, auth_1.OnSession, this.RenderList);
         this.router.get(`/insumo/category/:id`, auth_1.OnSession, this.RenderUnique);
         this.router.get(`/insumo/category/:id/update`, auth_1.OnSession, this.RenderUpdate);
+        this.router.get(`/insumo/category/:id/recovery`, auth_1.OnSession, auth_1.OnRoot, this.Recovery);
         this.router.post(`/insumo/category/create`, auth_1.OnSession, this.CreateLogic);
         this.router.post(`/insumo/category/:id/update`, auth_1.OnSession, this.EditLogic);
-        this.router.post(`/insumo/category/:id/delete`, auth_1.OnSession, auth_1.OnAdmin, this.DeleteLogic);
+        this.router.get(`/insumo/category/:id/delete`, auth_1.OnSession, auth_1.OnAdminORRoot, this.DeleteLogic);
         return this.router;
     }
 }

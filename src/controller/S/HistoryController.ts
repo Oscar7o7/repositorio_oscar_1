@@ -32,7 +32,7 @@ export default class HistoryController extends AbstractController {
                 title: `Historial`,
                 notResult: `No hay historial`,
                 newLink: `/user/create`,
-                labels: [`Fecha`,`Responsable`,`description`,,``],
+                labels: [`Fecha`,`Responsable`,`Descripción`,`Acción`,``],
                 actions: [
                     { label: `Panel`, path:`/`,permisson:[`ROOT`,`ADMIN`,`DOCTOR`] },
                 ],
@@ -75,15 +75,15 @@ export default class HistoryController extends AbstractController {
         const instance = new UserModel();
         const user = req.user as any;
 
-        const data = instance.findUser({ filter:{id} });
+        const data = instance.findHistory({ filter:{id} });
 
         const dataReturn = {
             data: [] as any,
             form: {} as any,
             year: await instance.getYears(),
             currentPage: {
-                title: `Ver usuario`,
-                notResult: `se encontró el usuario ${id}`,
+                title: `Ver historial`,
+                notResult: `se encontró el historial ${id}`,
                 actions: [
                     { label: `Lista`, path:`/history`, permisson:[`ADMIN`,`DOCTOR`] },
                     { label: `Crear`, path:`/history/create`, permisson:[`ROOT`] },
@@ -93,6 +93,10 @@ export default class HistoryController extends AbstractController {
             },
             speciality: [] as any,
         }
+        const customData = await data;
+        if(customData?.action.includes(`delete`)) {
+            dataReturn.currentPage.actions.push({ label:`Recuperar`, path:`/${customData.objectName}/${customData.objectId}/recovery`, permisson:[`ROOT`] })
+        } 
 
         dataReturn.data = await data;
         return res.render(`s/history/unique.hbs`, dataReturn);

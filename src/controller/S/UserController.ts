@@ -159,6 +159,7 @@ export default class UserController extends AbstractController {
                 actions: [
                     { label: `Lista`, path:`/user`, permisson:[`ADMIN`,`DOCTOR`] },
                     { label: `Crear`, path:`/user/create`, permisson:[`ROOT`] },
+                    { label: `Eliminar`, path:`/user/${id}/delete`, permisson:[`ROOT`] },
                 ],
                 newLink: `/user/create`,
                 labels: [],
@@ -197,12 +198,16 @@ export default class UserController extends AbstractController {
 
             await instance.createUser({ data });
 
+            let currentDescription = `cédula: ${data.ci}, Correo: ${data.email}, Nombre: ${data.name}, Apellido:${data.lastname}, Permisos${data.role}`;
+
             await instance.CreateHistory({ 
                 description:`creación de usuario`,
                 userReference: { connect:{id:user.id} },
                 objectId:user.id,
-                objectName:`usuario`,
-                objectReference: true
+                objectName:`user`,
+                objectReference: true,
+                action: `create.user`,
+                descriptionAlt: currentDescription
             });
 
             req.flash(`succ`, `Usuario creado`);
@@ -221,13 +226,31 @@ export default class UserController extends AbstractController {
             const { ci,name,lastname,email } = req.body;
             const id = req.params.id as string;
 
+            const userFound = await instance.findUser({ filter:{id:user.id} });
+            if (!userFound) {
+                req.flash(`Error temporal`);
+                return res.redirect(`/user`)
+            }
+            let currentDescription = ``;
+
             let dataUpdate: Prisma.UserUpdateInput = {};
 
-            if(ci) dataUpdate = {...dataUpdate, ci};
-            if(email) dataUpdate = {...dataUpdate, email};
-            if(name) dataUpdate = {...dataUpdate, name};
-            if(lastname) dataUpdate = {...dataUpdate, lastname};
-            if(email) dataUpdate = {...dataUpdate, email};
+            if(ci) {
+                currentDescription += `${userFound.ci} => ${ci} - `;
+                dataUpdate = {...dataUpdate, ci};
+            }
+            if(email) {
+                currentDescription += `${userFound.email} => ${email} - `;
+                dataUpdate = {...dataUpdate, email};
+            }
+            if(name) {
+                currentDescription += `${userFound.name} => ${name} - `;
+                dataUpdate = {...dataUpdate, name};
+            }
+            if(lastname) {
+                currentDescription += `${userFound.lastname} => ${lastname} - `;
+                dataUpdate = {...dataUpdate, lastname};
+            }
 
             await instance.updateUser({
                 data: dataUpdate,
@@ -242,8 +265,10 @@ export default class UserController extends AbstractController {
                 description:`actualización de usuario`,
                 userReference: { connect:{id} },
                 objectId:id,
-                objectName:`usuario`,
-                objectReference: true
+                objectName:`user`,
+                objectReference: true,
+                action: `update.user`,
+                descriptionAlt: currentDescription
             });
 
             req.flash(`succ`, `Usuario actualizado`);
@@ -270,12 +295,50 @@ export default class UserController extends AbstractController {
                 description:`actualización de usuario`,
                 userReference: { connect:{id} },
                 objectId:id,
-                objectName:`usuario`,
-                objectReference: true
+                objectName:`user`,
+                objectReference: true,
+                action: `delete.user`,
+                descriptionAlt: `Eliminación de usuario`
             });
 
             req.flash(`succ`, `Eliminado exitosamente.`);
             return res.redirect(`/user/`);
+        } catch (error) {
+            req.flash(`Error`, `Error temporal`);
+            return res.redirect(`/user/`);            
+        }
+    }
+
+    public async Recovery(req:Request,res:Response) {
+        try {
+            const instance = new UserModel();
+            const user = req.user as any;
+
+            const id = req.params.id as string;
+
+            let currentDescription = `Recuperar usuario eliminado.`;
+
+            await instance.updateUser({
+                data: { isDelete:false },
+                id
+            });   
+            
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
+
+            await instance.CreateHistory({ 
+                description:`recuperación de usuario`,
+                userReference: { connect:{id} },
+                objectId:id,
+                objectName:`user`,
+                objectReference: true,
+                action: `recovery.user`,
+                descriptionAlt: currentDescription
+            });
+
+            req.flash(`succ`, `Usuario recuperado`);
+            return res.redirect(req.query.next ? req.query.next : `/profile`);
         } catch (error) {
             req.flash(`Error`, `Error temporal`);
             return res.redirect(`/user/`);            
@@ -316,7 +379,7 @@ export default class UserController extends AbstractController {
                 description:`creación de usuario contraseña`,
                 userReference: { connect:{id} },
                 objectId:id,
-                objectName:`usuario`,
+                objectName:`user`,
                 objectReference: true
             });
 
@@ -334,10 +397,11 @@ export default class UserController extends AbstractController {
         this.router.get(`/user/:id`, OnSession, OnRoot, this.RenderUnique);
         this.router.get(`/user/:id/update`, OnSession, OnRoot, this.RenderUpdate);
 
-        this.router.post(`/user/create`, OnSession, OnRoot, this.CreateLogic)
-        this.router.post(`/user/:id/update`, OnSession, OnRoot, this.EditLogic)
+        this.router.post(`/user/create`, OnSession, OnRoot, this.CreateLogic);
+        this.router.post(`/user/:id/update`, OnSession, OnRoot, this.EditLogic);
+        this.router.get(`/user/:id/recovery`, OnSession, OnRoot, this.Recovery);
         this.router.post(`/user/:id/password`, OnSession, OnRoot, this.UpdatePasswordLogic);
-        this.router.post(`/user/:id/delete`, OnSession, OnRoot, OnAdmin, this.DeleteLogic);
+        this.router.get(`/user/:id/delete`, OnSession, OnRoot, this.DeleteLogic);
 
         return this.router;
     }

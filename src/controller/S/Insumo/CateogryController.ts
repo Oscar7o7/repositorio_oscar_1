@@ -1,7 +1,7 @@
 import AbstractController from "../../AbstractController";
 import CategoryModel from "../../../model/insumo/category/CategoryModel";
 import { Request, Response } from "express";
-import { OnAdmin, OnSession } from "../../../middlewares/auth";
+import { OnAdmin, OnAdminORRoot, OnRoot, OnSession } from "../../../middlewares/auth";
 import { Prisma } from "@prisma/client";
 
 
@@ -38,9 +38,10 @@ export default class CategoryController extends AbstractController {
                 title: `Actualizar Categoria`,
                 notResult: `se encontró la categoria ${id}`,
                 actions: [
-                    { label: `Insumos`, path:`/insumo/`, permissions:[`ROOT`,`ADMIN`,`DOCTOR`] },
+                    { label: `Insumos`, path:`/insumo/?categoryId=${id}`, permissions:[`ROOT`,`ADMIN`,`DOCTOR`] },
                     { label: `Lista`, path:`/insumo/category`, permissions:[`ROOT`,`ADMIN`,`DOCTOR`] },
                     { label: `Crear`, path:`/insumo/category/create`, permissions:[`ROOT`,`ADMIN`] },
+                    { label: `Eliminar`, path:`/insumo/category/${id}/delete` },
                 ],
                 labels: [],
             },
@@ -143,6 +144,7 @@ export default class CategoryController extends AbstractController {
                 actions: [
                     { label: `Lista`, path:`/insumo/category` },
                     { label: `Crear`, path:`/insumo/category/create` },
+                    
                 ],
                 labels: [],
             },
@@ -169,6 +171,8 @@ export default class CategoryController extends AbstractController {
                 name,
             }
 
+            let currentDescription = `Nombre:${name}, creador: ${user.name} ${user.lastname}`;
+
             await instance.createCategory({ data });
 
             if(user) {
@@ -179,8 +183,10 @@ export default class CategoryController extends AbstractController {
                 description:`creación de categoria`,
                 userReference: { connect:{id:user.id} },
                 objectId:user.id,
-                objectName:`categoria`,
-                objectReference: true
+                objectName:`insumo/category`,
+                objectReference: true,
+                action: `create.category`,
+                descriptionAlt: currentDescription
             });
 
             req.flash(`succ`, `Categoria creada.`);
@@ -200,7 +206,12 @@ export default class CategoryController extends AbstractController {
 
             let dataUpdate: Prisma.CategoryUpdateInput = {};
 
-            if(name) dataUpdate = {...dataUpdate, name};
+            let currentDescription = `actualizador: ${user.name} ${user.lastname}`;
+
+            if(name) {
+                currentDescription += `, nombre:${name}`
+                dataUpdate = {...dataUpdate, name};
+            }
 
             if(user) {
                 await instance.PushStatictics({ objectId:user.id,objectName:`user` });
@@ -214,9 +225,11 @@ export default class CategoryController extends AbstractController {
             await instance.CreateHistory({ 
                 description:`actualización de categoria`,
                 userReference: { connect:{id:user.id} },
-                objectId:user.id,
-                objectName:`categoria`,
-                objectReference: true
+                objectId:id,
+                objectName:`insumo/category`,
+                objectReference: true,
+                action: `update.category`,
+                descriptionAlt: currentDescription
             });
 
             // req.flash(`succ`, `Usuario actualizado`);
@@ -239,16 +252,55 @@ export default class CategoryController extends AbstractController {
                 await instance.PushStatictics({ objectId:user.id,objectName:`user` });
             }
 
+            const customDescription = `eliminador: ${user.name} ${user.lastname}`;
+
             await instance.CreateHistory({ 
                 description:`eliminación de categoria`,
                 userReference: { connect:{id:user.id} },
-                objectId:user.id,
-                objectName:`categoria`,
-                objectReference: true
+                objectId:id,
+                objectName:`insumo/category`,
+                objectReference: true,
+                action: `delete.category`,
+                descriptionAlt: customDescription
             });
 
             req.flash(`succ`, `Eliminado exitosamente.`);
             return res.redirect(`/insumo/category/`);
+        } catch (error) {
+            req.flash(`Error`, `Error temporal`);
+            return res.redirect(`/insumo/category/`);            
+        }
+    }
+
+    public async Recovery(req:Request,res:Response) {
+        try {
+            const instance = new CategoryModel();
+            const user = req.user as any;
+            const id = req.params.id as string;
+
+            let currentDescription = `recuperador: ${user.name} ${user.lastname}`;
+
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
+
+            await instance.updateCategory({
+                data: { isDelete:false },
+                id
+            });
+
+            await instance.CreateHistory({ 
+                description:`recuperación de categoria`,
+                userReference: { connect:{id:user.id} },
+                objectId:id,
+                objectName:`insumo/category`,
+                objectReference: true,
+                action: `recovery.category`,
+                descriptionAlt: currentDescription
+            });
+
+            // req.flash(`succ`, `Usuario actualizado`);
+            return res.redirect(`/insumo/category`);
         } catch (error) {
             req.flash(`Error`, `Error temporal`);
             return res.redirect(`/insumo/category/`);            
@@ -261,9 +313,10 @@ export default class CategoryController extends AbstractController {
         this.router.get(`/insumo/category/:id`, OnSession, this.RenderUnique);
         this.router.get(`/insumo/category/:id/update`, OnSession, this.RenderUpdate);
 
-        this.router.post(`/insumo/category/create`, OnSession, this.CreateLogic)
-        this.router.post(`/insumo/category/:id/update`, OnSession, this.EditLogic)
-        this.router.post(`/insumo/category/:id/delete`, OnSession, OnAdmin, this.DeleteLogic);
+        this.router.get(`/insumo/category/:id/recovery`, OnSession, OnRoot, this.Recovery);
+        this.router.post(`/insumo/category/create`, OnSession, this.CreateLogic);
+        this.router.post(`/insumo/category/:id/update`, OnSession, this.EditLogic);
+        this.router.get(`/insumo/category/:id/delete`, OnSession, OnAdminORRoot, this.DeleteLogic);
 
         return this.router;
     }

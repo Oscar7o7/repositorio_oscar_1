@@ -166,16 +166,19 @@ model StaticticsYear {
 }
 
 model History {
-  id                  String        @id         @default(uuid())
+  id                  String              @id               @default(uuid())
+
+  action              String              @default("default")
+  descriptionAlt      String              @default("")
 
   objectName          String?
   objectId            String?
   objectReference     Boolean?           @default(false)
 
   userId              String        
-  userReference       User              @relation(fields: [userId], references: [id])
+  userReference       User                @relation(fields: [userId], references: [id])
 
-  description String
+  description         String
 
-  createAt                  DateTime @default(now())
+  createAt            DateTime            @default(now())
 }

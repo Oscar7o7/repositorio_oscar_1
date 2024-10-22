@@ -29,6 +29,18 @@ class AbstractModel extends Kernel {
         await prisma.history.create({data});
     }
 
+    public async findHistory({filter}: {filter:Prisma.HistoryWhereInput}) {
+        const prisma = new PrismaClient();
+        return prisma.history.findFirst({
+            where: {
+                ...filter,
+            },
+            include: {
+                userReference: true,
+            }
+        });
+    }
+
     public async findManyHistory({filter,skip,take}: {filter:Prisma.HistoryWhereInput,skip:number,take:number}) {
         const prisma = new PrismaClient();
         return prisma.history.findMany({

@@ -1,94 +1,81 @@
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header pb-0 d-flex justify-content-between">
+                <div>
+                    <h6>{{currentPage.title}}</h6>
+                </div>
+                <div class="d-flex gap-3">
+                    {{#each currentPage.actions}}
+                        {{#itemButton this ../user.role}}
+                            {{this}}
+                        {{/itemButton}}
+                    {{/each}}
+                </div>
+            </div>
+            <div class="card-body px-0 pt-0 pb-2">
+                <div class="table-responsive p-0">
+                    {{#if list}}
+                    <table class="table align-items-center mb-0">
+                        <thead>
+                            <tr>
+                                {{#each currentPage.labels}}
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">{{this}}</th>
+                                {{/each}}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#each list}}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{this.name}} {{this.lastname}}</h6>
+                                                {{!-- <p class="text-xs text-secondary mb-0">{{this.email}}</p> --}}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{this.ci}}</p>
+                                        {{!-- <p class="text-xs text-secondary mb-0"></p> --}}
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{this.email}}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{this.role}}</span>
+                                    </td>
+                                    <td class="align-middle">
+                                        <a href="/user/{{this.id}}/update" class="btn badge badge-sm bg-gradient-primary">actualizar</a>
+                                        <a href="/user/{{this.id}}/" class="btn badge badge-sm bg-gradient-primary">ver</a>
+                                    </td>
+                                </tr>
+                            {{/each}}
+                        </tbody>
+                    </table>
+                    {{else}}
+                        <p class="lead">{{notFoundMessage}}</p>
+                    {{/if}}
+                </div>
+            </div>
+            <div class="card-footer py-2 d-flex justify-content-between">
+                <span></span>
+                <div>
+                    {{#if foundPrevious}}
+                        <a href="{{urlPrevious}}" class="btn btn-sm px-3 bg-gradient-primary">anterior</a>
+                    {{else}}
+                        <span class="btn btn-sm px-3 btn-light text-muted">anterior</span>
+                    {{/if}}
 
+                    <span class="btn btn-sm btn-light">{{countRender}}</span>
 
-<div class="card mb-4  w-100">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-4">
-            <i class="bi bi-grid-3x3 me-1"></i>
-            {{titlePag}}
-            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreateUser">crear</button>
+                    {{#if foundNext}}
+                        <a href="{{urlNext}}" class="btn btn-sm px-3 bg-gradient-primary">siguiente</a>
+                    {{else}}
+                        <span class="btn btn-sm px-3 btn-light text-muted">siguiente</span>
+                    {{/if}}
+                </div>
+            </div>
         </div>
-        <form class="row">
-            <select class="form-control col" name="role">
-                <option value="{{filter.value}}" selected>{{filter.role}}</option>
-                {{#each roleList}}
-                    <option value="{{this}}">{{this}}</option>
-                {{/each}}
-            </select>
-            <input type="text" class="form-control col" name="param" value="{{filter.param}}" />
-            <button type="submit" class="btn btn-primary col-2">
-                <i class="bi bi-search"></i>
-            </button>
-        </form>
-    </div>
-
-    <div class="card-body">
-        <table id="" class="table table-sm table-bordered">
-            <thead>
-                <tr>
-                    {{#each labels}}
-                        <th class="text-center">{{this}}</th>
-                    {{/each}}
-                </tr>
-            </thead>
-            <tbody>
-                {{#if list}}
-                    {{#each list}}
-                        <tr>
-                            <td>{{this.name}} {{this.lastname}}</td>
-                            <td>{{this.ci}}</td>
-                            <td>{{this.email}}</td>
-                            <td>{{this.role}}</td>
-                            <td class="d-flex justify-content-center">
-                                {{#isDoctor this}}
-                                <a href="/porfolio?id={{this.id}}" class="btn btn-warning btn-sm mx-1">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                {{/isDoctor}}
-                                {{#isAdmin ../user }}
-                                    {{#isValid this.role "DOCTOR"}}
-                                    <a href="/quote/?doctor={{this.id}}" class="btn btn-success btn-sm mx-1">
-                                        <i class="bi bi-clipboard-check-fill"></i>
-                                    </a>
-                                    {{/isValid}}
-                                    {{#isValid this.role "PACIENTE"}}
-                                    <a href="/quote/?patient={{this.id}}" class="btn btn-success btn-sm mx-1">
-                                        <i class="bi bi-clipboard-check-fill"></i>
-                                    </a>
-                                    {{/isValid}}                                    
-                                    <a href="/user/{{this.id}}" class="btn btn-primary btn-sm mx-1">
-                                        <i class="bi bi-eye-fill"></i>
-                                    </a>
-                                    <a href="/user/{{this.id}}" class="btn btn-danger btn-sm mx-1">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </a>
-                                {{/isAdmin}}
-                            </td>
-                        </tr>
-                    {{/each}}
-                {{else}}
-                    <p>{{notFoundMessage}}</p>
-                {{/if}}
-
-            </tbody>
-        </table>
-    </div>
-
-    <div class="card-footer d-flex justify-content-between">
-        <span></span>
-        <ul class="d-flex justify-content-center">
-            {{#if foundPrevious}}
-                <li class="btn btn-outline-primary" style="list-style: none;"><a style="text-decoration: none;" href="{{urlPrevious}}">anterior</a></li>
-            {{else}}
-                <li class="" style="list-style: none;"></li>
-            {{/if}}
-            
-            <li class="btn" style="list-style: none;">{{countRender}}</li>
-
-            {{#if foundNext}}
-                <li class="btn btn-outline-primary" style="list-style: none;"><a style="text-decoration: none;" href="{{urlNext}}">siguiente</a></li>
-            {{else}}
-                <li class="" style="list-style: none;"></li>
-            {{/if}}
-        </ul>
     </div>
 </div>

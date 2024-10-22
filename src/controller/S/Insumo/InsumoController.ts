@@ -1,8 +1,8 @@
 import AbstractController from "../../AbstractController";
-import UserModel from "../../../model/insumo/InsumoModel";
+import InsumoModel from "../../../model/insumo/InsumoModel";
 import CategoryModel from "../../../model/insumo/category/CategoryModel";
 import { Request, Response } from "express";
-import { OnAdmin, OnSession } from "../../../middlewares/auth";
+import { OnAdmin, OnAdminORRoot, OnRoot, OnSession } from "../../../middlewares/auth";
 import { Prisma } from "@prisma/client";
 
 
@@ -32,7 +32,7 @@ export default class InsumoController extends AbstractController {
     }
 
     public async RenderUpdate(req:Request,res:Response) {
-        const instance = new UserModel();
+        const instance = new InsumoModel();
         const id = req.params.id;
         const result = instance.findInsumo({ filter:{id} });
 
@@ -58,7 +58,7 @@ export default class InsumoController extends AbstractController {
     }
 
     public async RenderList(req:Request,res:Response) {
-        const instance = new UserModel();
+        const instance = new InsumoModel();
 
         const {param,stock} = req.query as { param?:string, stock?:`min`|`max`|`all` };
         let queryString = ``;
@@ -147,7 +147,7 @@ export default class InsumoController extends AbstractController {
 
     public async RenderUnique(req:Request,res:Response) {
         const id = req.params.id;
-        const instance = new UserModel();
+        const instance = new InsumoModel();
         const user = req.user as any;
 
         const data = instance.findInsumo({ filter:{id} });
@@ -162,6 +162,7 @@ export default class InsumoController extends AbstractController {
                 actions: [
                     { label: `Lista`, path:`/insumo` },
                     { label: `Crear`, path:`/insumo/create`, permissions:[`ROOT`,`ADMIN`] },
+                    { label: `Eliminar`, path:`/insumo/${id}/delete`, permissions:[`ROOT`,`ADMIN`] },
                 ],
             },
         }
@@ -172,9 +173,9 @@ export default class InsumoController extends AbstractController {
 
     public async CreateLogic(req:Request,res:Response) {
         try {
-            const instance = new UserModel();
+            const instance = new InsumoModel();
 
-            const { name,categoryId,description,maxStock,minStock,priceUnitary,quantity } = req.body;
+            const { name,categoryId,description,maxStock,minStock,quantity } = req.body;
             const user = req.user as any;
 
             let data: Prisma.InsumoCreateInput = { 
@@ -184,9 +185,10 @@ export default class InsumoController extends AbstractController {
                 description,
                 maxStock: maxStock ? Number(maxStock) : 100,
                 minStock: minStock ? Number(minStock) : 0,
-                priceUnitary: priceUnitary ? Number(priceUnitary) : 0,
                 quantity: quantity ? Number(quantity) : 0,
             }
+
+            let currentDescription = `Nombre:${name}, cantidad:${quantity} descripción:${description}, mínimo:${minStock}, maxsimo:${maxStock} creador: ${user.name} ${user.lastname}`;
 
             await instance.createInsumo({ data });
 
@@ -195,7 +197,9 @@ export default class InsumoController extends AbstractController {
                 userReference: { connect:{id:user.id} },
                 objectId:user.id,
                 objectName:`insumo`,
-                objectReference: true
+                objectReference: true,
+                action: `create.insumo`,
+                descriptionAlt: currentDescription
             });
 
             if(user) {
@@ -212,24 +216,50 @@ export default class InsumoController extends AbstractController {
 
     public async EditLogic(req:Request,res:Response) {
         try {
-            const instance = new UserModel();
+            const instance = new InsumoModel();
+            const categoryModel = new CategoryModel();
             const user = req.user as any;
-            const { name,categoryId,description,maxStock,minStock,priceUnitary,quantity } = req.body;
+            const { name,categoryId,description,maxStock,minStock,quantity } = req.body;
             const id = req.params.id as string;
 
+            const insumoFound = await instance.findInsumo({ filter:{ id } });
+            const categoryFound = await categoryModel.findCategory({ filter:{id:categoryId} });
+            if(!insumoFound || !categoryFound) {
+                req.flash(`err`, `Error temporal`);
+                return res.redirect(`/insumo`);
+            }
             let dataUpdate: Prisma.InsumoUpdateInput = {};
 
             if(user) {
                 await instance.PushStatictics({ objectId:user.id,objectName:`user` });
             }
 
-            if(name) dataUpdate = {...dataUpdate, name};
-            if(description) dataUpdate = {...dataUpdate, description};
-            if(maxStock) dataUpdate = {...dataUpdate, maxStock: Number(maxStock)};
-            if(minStock) dataUpdate = {...dataUpdate, minStock: Number(minStock)};
-            if(priceUnitary) dataUpdate = {...dataUpdate, priceUnitary: Number(priceUnitary)};
-            if(quantity) dataUpdate = {...dataUpdate, quantity: Number(quantity)};
-            if(categoryId) dataUpdate = {...dataUpdate, categoryReference:{connect:{id:categoryId}}}
+            let currentDescription = `actualizador: ${user.name} ${user.lastname}`;
+
+            if(name) {
+                currentDescription += `, nombre: ${insumoFound.name} -> ${name}`;
+                dataUpdate = {...dataUpdate, name};
+            }
+            if(description) {
+                currentDescription += `, descripción: ${insumoFound.description} -> ${description}`;
+                dataUpdate = {...dataUpdate, description};
+            }
+            if(maxStock) {
+                currentDescription += `, maximo: ${insumoFound.maxStock} -> ${maxStock}`;
+                dataUpdate = {...dataUpdate, maxStock: Number(maxStock)};
+            }
+            if(minStock) {
+                currentDescription += `, mínimo: ${insumoFound.minStock} -> ${minStock}`;
+                dataUpdate = {...dataUpdate, minStock: Number(minStock)};
+            }
+            if(quantity) {
+                currentDescription += `, cantidad: ${insumoFound.quantity} -> ${quantity}`;
+                dataUpdate = {...dataUpdate, quantity: Number(quantity)};
+            }
+            if(categoryId) {
+                currentDescription += `, categoria: ${insumoFound.categoryReference.name} -> ${categoryFound.name}`;
+                dataUpdate = {...dataUpdate, categoryReference:{connect:{id:categoryId}}}
+            }
 
             await instance.updateInsumo({
                 data: dataUpdate,
@@ -242,9 +272,11 @@ export default class InsumoController extends AbstractController {
             await instance.CreateHistory({ 
                 description:`actualización de insumo ${dataUpdate.name}`,
                 userReference: { connect:{id:user.id} },
-                objectId:user.id,
+                objectId:id,
                 objectName:`insumo`,
-                objectReference: true
+                objectReference: true,
+                action: `udpate.insumo`,
+                descriptionAlt: currentDescription
             });
 
             // req.flash(`succ`, `Usuario actualizado`);
@@ -257,7 +289,7 @@ export default class InsumoController extends AbstractController {
 
     public async DeleteLogic(req:Request,res:Response) {
         try {
-            const instance = new UserModel();
+            const instance = new InsumoModel();
             const id = req.params.id as string;
             const user = req.user as any;
             await instance.deleteInsumo({ id });        
@@ -269,9 +301,11 @@ export default class InsumoController extends AbstractController {
             await instance.CreateHistory({ 
                 description:`eliminación de insumo`,
                 userReference: { connect:{id:user.id} },
-                objectId:user.id,
+                objectId:id,
                 objectName:`insumo`,
-                objectReference: true
+                objectReference: true,
+                action: `delete.insumo`,
+                descriptionAlt: `eliminador: ${user.name} ${user.lastname}`
             });
 
             req.flash(`succ`, `Eliminado exitosamente.`);
@@ -279,6 +313,42 @@ export default class InsumoController extends AbstractController {
         } catch (error) {
             req.flash(`Error`, `Error temporal`);
             return res.redirect(`/insumo/`);            
+        }
+    }
+
+    public async Recovery(req:Request,res:Response) {
+        try {
+            const instance = new InsumoModel();
+            const user = req.user as any;
+            const id = req.params.id as string;
+
+
+            if(user) {
+                await instance.PushStatictics({ objectId:user.id,objectName:`user` });
+            }
+
+            let currentDescription = `recuperador: ${user.name} ${user.lastname}`;
+            
+            await instance.updateInsumo({ id, data:{isDelete:false} });
+
+            await instance.PushStatictics({ objectId:id,objectName:`insumo` });
+            await instance.PushStatictics({ objectId:`all_insumo`,objectName:`insumo` });
+
+            await instance.CreateHistory({ 
+                description:`recuperar usuario de insumo ${id}`,
+                userReference: { connect:{id:user.id} },
+                objectId:id,
+                objectName:`insumo`,
+                objectReference: true,
+                action: `recovery.insumo`,
+                descriptionAlt: currentDescription
+            });
+
+            // req.flash(`succ`, `Usuario actualizado`);
+            return res.redirect(`/insumo`);
+        } catch (error) {
+            req.flash(`Error`, `Error temporal`);
+            return res.redirect(`/insumo`);            
         }
     }
 
@@ -290,7 +360,8 @@ export default class InsumoController extends AbstractController {
 
         this.router.post(`/insumo/create`, OnSession, this.CreateLogic);
         this.router.post(`/insumo/:id/update`, OnSession, this.EditLogic);
-        this.router.post(`/insumo/:id/delete`, OnSession, OnAdmin, this.DeleteLogic);
+        this.router.get(`/insumo/:id/recovery`, OnSession, OnRoot, this.Recovery);
+        this.router.get(`/insumo/:id/delete`, OnSession, OnAdminORRoot, this.DeleteLogic);
 
         return this.router;
     }

@@ -156,6 +156,7 @@ class UserController extends AbstractController_1.default {
                     actions: [
                         { label: `Lista`, path: `/user`, permisson: [`ADMIN`, `DOCTOR`] },
                         { label: `Crear`, path: `/user/create`, permisson: [`ROOT`] },
+                        { label: `Eliminar`, path: `/user/${id}/delete`, permisson: [`ROOT`] },
                     ],
                     newLink: `/user/create`,
                     labels: [],
@@ -187,12 +188,15 @@ class UserController extends AbstractController_1.default {
                     role,
                 };
                 yield instance.createUser({ data });
+                let currentDescription = `cédula: ${data.ci}, Correo: ${data.email}, Nombre: ${data.name}, Apellido:${data.lastname}, Permisos${data.role}`;
                 yield instance.CreateHistory({
                     description: `creación de usuario`,
                     userReference: { connect: { id: user.id } },
                     objectId: user.id,
-                    objectName: `usuario`,
-                    objectReference: true
+                    objectName: `user`,
+                    objectReference: true,
+                    action: `create.user`,
+                    descriptionAlt: currentDescription
                 });
                 req.flash(`succ`, `Usuario creado`);
                 return res.redirect(`/user/`);
@@ -210,17 +214,29 @@ class UserController extends AbstractController_1.default {
                 const user = req.user;
                 const { ci, name, lastname, email } = req.body;
                 const id = req.params.id;
+                const userFound = yield instance.findUser({ filter: { id: user.id } });
+                if (!userFound) {
+                    req.flash(`Error temporal`);
+                    return res.redirect(`/user`);
+                }
+                let currentDescription = ``;
                 let dataUpdate = {};
-                if (ci)
+                if (ci) {
+                    currentDescription += `${userFound.ci} => ${ci} - `;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { ci });
-                if (email)
+                }
+                if (email) {
+                    currentDescription += `${userFound.email} => ${email} - `;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { email });
-                if (name)
+                }
+                if (name) {
+                    currentDescription += `${userFound.name} => ${name} - `;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { name });
-                if (lastname)
+                }
+                if (lastname) {
+                    currentDescription += `${userFound.lastname} => ${lastname} - `;
                     dataUpdate = Object.assign(Object.assign({}, dataUpdate), { lastname });
-                if (email)
-                    dataUpdate = Object.assign(Object.assign({}, dataUpdate), { email });
+                }
                 yield instance.updateUser({
                     data: dataUpdate,
                     id
@@ -232,8 +248,10 @@ class UserController extends AbstractController_1.default {
                     description: `actualización de usuario`,
                     userReference: { connect: { id } },
                     objectId: id,
-                    objectName: `usuario`,
-                    objectReference: true
+                    objectName: `user`,
+                    objectReference: true,
+                    action: `update.user`,
+                    descriptionAlt: currentDescription
                 });
                 req.flash(`succ`, `Usuario actualizado`);
                 return res.redirect(req.query.next ? req.query.next : `/profile`);
@@ -258,11 +276,45 @@ class UserController extends AbstractController_1.default {
                     description: `actualización de usuario`,
                     userReference: { connect: { id } },
                     objectId: id,
-                    objectName: `usuario`,
-                    objectReference: true
+                    objectName: `user`,
+                    objectReference: true,
+                    action: `delete.user`,
+                    descriptionAlt: `Eliminación de usuario`
                 });
                 req.flash(`succ`, `Eliminado exitosamente.`);
                 return res.redirect(`/user/`);
+            }
+            catch (error) {
+                req.flash(`Error`, `Error temporal`);
+                return res.redirect(`/user/`);
+            }
+        });
+    }
+    Recovery(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const instance = new UserModel_1.default();
+                const user = req.user;
+                const id = req.params.id;
+                let currentDescription = `Recuperar usuario eliminado.`;
+                yield instance.updateUser({
+                    data: { isDelete: false },
+                    id
+                });
+                if (user) {
+                    yield instance.PushStatictics({ objectId: user.id, objectName: `user` });
+                }
+                yield instance.CreateHistory({
+                    description: `recuperación de usuario`,
+                    userReference: { connect: { id } },
+                    objectId: id,
+                    objectName: `user`,
+                    objectReference: true,
+                    action: `recovery.user`,
+                    descriptionAlt: currentDescription
+                });
+                req.flash(`succ`, `Usuario recuperado`);
+                return res.redirect(req.query.next ? req.query.next : `/profile`);
             }
             catch (error) {
                 req.flash(`Error`, `Error temporal`);
@@ -299,7 +351,7 @@ class UserController extends AbstractController_1.default {
                     description: `creación de usuario contraseña`,
                     userReference: { connect: { id } },
                     objectId: id,
-                    objectName: `usuario`,
+                    objectName: `user`,
                     objectReference: true
                 });
                 req.flash(`succ`, `Usuario actualizado`);
@@ -318,8 +370,9 @@ class UserController extends AbstractController_1.default {
         this.router.get(`/user/:id/update`, auth_1.OnSession, auth_1.OnRoot, this.RenderUpdate);
         this.router.post(`/user/create`, auth_1.OnSession, auth_1.OnRoot, this.CreateLogic);
         this.router.post(`/user/:id/update`, auth_1.OnSession, auth_1.OnRoot, this.EditLogic);
+        this.router.get(`/user/:id/recovery`, auth_1.OnSession, auth_1.OnRoot, this.Recovery);
         this.router.post(`/user/:id/password`, auth_1.OnSession, auth_1.OnRoot, this.UpdatePasswordLogic);
-        this.router.post(`/user/:id/delete`, auth_1.OnSession, auth_1.OnRoot, auth_1.OnAdmin, this.DeleteLogic);
+        this.router.get(`/user/:id/delete`, auth_1.OnSession, auth_1.OnRoot, this.DeleteLogic);
         return this.router;
     }
 }

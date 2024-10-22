@@ -7,9 +7,7 @@
                 </div>
                 <div class="d-flex gap-3">
                     {{#each currentPage.actions}}
-                        {{#itemButton this ../user.role}}
-                            {{this}}
-                        {{/itemButton}}
+                        <a href="{{this.path}}" class="btn btn-sm bg-gradient-primary">{{this.label}}</a>
                     {{/each}}
                 </div>
             </div>
@@ -19,34 +17,42 @@
                     <table class="table align-items-center mb-0">
                         <thead>
                             <tr>
+                                {{!-- `Nombre`,`Creador`,`Categoria`,`Mínimo`,`Máximo`,`Cantidad`,`` --}}
                                 {{#each currentPage.labels}}
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">{{this}}</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">{{{this}}}</th>
                                 {{/each}}
                             </tr>
                         </thead>
                         <tbody>
                             {{#each list}}
                                 <tr>
-                                    <td>
-                                        <div class="d-flex px-2">
+                                    <td class="align-middle text-center">
+                                        <div class="d-flex px-2 py-1">
                                             <div class="d-flex flex-column justify-content-center">
-                                                <h6 class="mb-0 text-xs">{{this.createAt}}</h6>
+                                                <h6 class="mb-0 text-sm">{{this.name}}</h6>
                                                 {{!-- <p class="text-xs text-secondary mb-0">{{this.email}}</p> --}}
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        <p class="text-xs font-weight-bold mb-0">{{this.userReference.name}} {{this.userReference.lastname}}</p>
+                                    <td class="align-middle text-center">
+                                        <p class="text-xs font-weight-bold mb-0">{{this.createReference.name}} {{this.createReference.lastname}}</p>
                                         {{!-- <p class="text-xs text-secondary mb-0"></p> --}}
                                     </td>
                                     <td class="align-middle text-center">
-                                        <span class="text-secondary text-xs font-weight-bold">{{this.description}}</span>
+                                        <span class="text-secondary text-xs font-weight-bold">{{this.categoryReference.name}}</span>
                                     </td>
                                     <td class="align-middle text-center">
-                                        <span class="text-secondary text-xs font-weight-bold">{{this.action}}</span>
+                                        <p class="text-xs font-weight-bold mb-0">{{this.minStock}}</p>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <p class="text-xs font-weight-bold mb-0">{{this.maxStock}}</p>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <p class="text-xs font-weight-bold mb-0">{{this.quantity}}</p>
                                     </td>
                                     <td class="align-middle">
-                                        <a href="/history/{{this.id}}/" class="btn badge badge-sm bg-gradient-primary">ver</a>
+                                        <a href="/insumo/{{this.id}}/unique" class="btn badge badge-sm bg-gradient-primary">ver</a>
+                                        <a href="/insumo/{{this.id}}/update" class="btn badge badge-sm bg-gradient-primary">actualizar</a>
                                     </td>
                                 </tr>
                             {{/each}}

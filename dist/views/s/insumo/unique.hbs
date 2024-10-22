@@ -1,0 +1,36 @@
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0 d-flex justify-content-between">
+                    <div>
+                        <h5>{{currentPage.title}}</h5>
+                    </div>
+                    <div class="d-flex gap-3">
+                        {{#each currentPage.actions}}
+                        <a href="{{this.path}}" class="btn bg-gradient-primary">{{this.label}}</a>
+                        {{/each}}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3>{{data.name}}</h3>
+                    <p>{{data.description}}</p>
+                    <ul>
+                        <li>Creador: <b>{{data.createReference.name}} {{data.createReference.lastname}}</b></li>
+                        <li>Categoria: <b>{{data.categoryReference.name}}</b></li>
+                    </ul>
+
+                </div>
+            </div>
+        </div>
+
+        {{>statictics/year}}
+        {{>statictics/month}}
+
+        
+    </div>
+</div>
+
+<input type="hidden" id="dataId" value="{{data.id}}" />
+<input type="hidden" id="ObjectName" value="insumo" />
+<input type="hidden" id="ObjectLabel" value="Insumo" />

@@ -40,7 +40,7 @@ class HistoryController extends AbstractController_1.default {
                     title: `Historial`,
                     notResult: `No hay historial`,
                     newLink: `/user/create`,
-                    labels: [`Fecha`, `Responsable`, `description`, , ``],
+                    labels: [`Fecha`, `Responsable`, `Descripción`, `Acción`, ``],
                     actions: [
                         { label: `Panel`, path: `/`, permisson: [`ROOT`, `ADMIN`, `DOCTOR`] },
                     ],
@@ -77,14 +77,14 @@ class HistoryController extends AbstractController_1.default {
             const id = req.params.id;
             const instance = new UserModel_1.default();
             const user = req.user;
-            const data = instance.findUser({ filter: { id } });
+            const data = instance.findHistory({ filter: { id } });
             const dataReturn = {
                 data: [],
                 form: {},
                 year: yield instance.getYears(),
                 currentPage: {
-                    title: `Ver usuario`,
-                    notResult: `se encontró el usuario ${id}`,
+                    title: `Ver historial`,
+                    notResult: `se encontró el historial ${id}`,
                     actions: [
                         { label: `Lista`, path: `/history`, permisson: [`ADMIN`, `DOCTOR`] },
                         { label: `Crear`, path: `/history/create`, permisson: [`ROOT`] },
@@ -94,6 +94,10 @@ class HistoryController extends AbstractController_1.default {
                 },
                 speciality: [],
             };
+            const customData = yield data;
+            if (customData === null || customData === void 0 ? void 0 : customData.action.includes(`delete`)) {
+                dataReturn.currentPage.actions.push({ label: `Recuperar`, path: `/${customData.objectName}/${customData.objectId}/recovery`, permisson: [`ROOT`] });
+            }
             dataReturn.data = yield data;
             return res.render(`s/history/unique.hbs`, dataReturn);
         });

@@ -21,7 +21,6 @@ if (spacePieCategory) {
   async function Execute () {
     const result = await ExecuteFetch(`/api/graphic/category`);
     if (!result) return;
-    console.log(result);
     const response = PushBarGraphic({ border:1, backgroundColor:[`#FB2576`,`#C2FFD9`,`#A149FA`] ,type:`pie`,label: `Gráfico categorias`, labels:result.labels, data: result.values });
     if(chartCategory) {
       chartCategory.destroy();
